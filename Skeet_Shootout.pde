@@ -1,62 +1,127 @@
-Skeet s;
-ArrayList<PVector> missedShots;
-ParticleSystem ps=new ParticleSystem();
+int screen=0;
 int score=0;
+ArrayList<PVector> missedShots;
+ParticleSystem ps;
+Skeet s;
+PImage menuBackground;
+PImage mainBackground;
+PImage gameOverBackground;
 
 void setup(){
-  fullScreen(P2D);
-  frameRate(60);
-  s=new Skeet();
+  fullScreen(P2D);//Make it full screen and run using a 2d renderer
+  frameRate(60);//Set frame rate
+
   missedShots=new ArrayList<PVector>();
+  ps=new ParticleSystem();
+  s=new Skeet();
+  
+  menuBackground=loadImage("menuBackground.png");
+  mainBackground=loadImage("mainBackground.png");
+  gameOverBackground=loadImage("gameOverBackground.png");
 }
 
 void draw(){
-  drawBackground();
-  s.run();//Run the skeet
-  drawTarget();
-  ps.run();
-}
-
-void drawBackground(){
-  background(color(91,201,239));
-  fill(color(25, 153, 9));
-  rect(0,height*2/3,width,(height-(height*2/3)));
+  if(screen==0){//Menu Screen
+    drawMenuBackground();
+  }
+  else if(screen==1){//Game Screen
+    drawMainBackground();
+    s.run();//Run the skeet
+    drawCrosshairBar();
+    drawTargets();//Draw the targets
+    drawCrosshair();//Draw the crosshair if you can are in the shootable area
+    ps.run();//Run the Particle Systems
+  }
+  else if(screen==2){//Game End Screen
+    drawGameOverBackground();
+  }
 }
 
 void mousePressed(){
-  if(mouseY<height*2/3){
-    if(mouseX>(s.position.x-(s.getWidth()/2))&&mouseX<(s.position.x+(s.getWidth()/2))&&mouseY>(s.position.y-(s.getHeight()/2))&&mouseY<(s.position.y+(s.getHeight()/2))){
-      ps=new ParticleSystem(new PVector(mouseX, mouseY), new PVector(s.getWidth(),s.getHeight()));
-      s.reset();
-      score++;
-      if(score==10){
-        win();
-      }
-    }
-    else{
-      missedShots.add(new PVector(mouseX, mouseY));
+  if(screen==0){//Menu Screen
+    if(mouseX>width*0.026078&&mouseX<width*0.280842&&mouseY>height*0.809428&&mouseY<height*0.937813){//Within the sign
+      screen=1;
     }
   }
-  println(score);
+  else if(screen==1){//Game Screen
+    if(mouseY<height*13/20){
+      if(mouseX>(s.position.x-(s.getWidth()/2))&&mouseX<(s.position.x+(s.getWidth()/2))&&mouseY>(s.position.y-(s.getHeight()/2))&&mouseY<(s.position.y+(s.getHeight()/2))){
+        ps=new ParticleSystem(new PVector(mouseX, mouseY), new PVector(s.getWidth(),s.getHeight()));
+        score++;
+        s.reset();
+        if(score==5){
+          win();
+        }
+      }
+      else{
+        score=0;
+        missedShots.add(new PVector(mouseX, mouseY));
+      }
+    }
+  }
+  else if(screen==2){//Game Over Screen
+  
+  }
+  
 }
 
-void drawTarget(){
+void drawMenuBackground(){
+  image(menuBackground,0,0,width,height);
+  textSize(55);
+  if(mouseX>width*0.026078&&mouseX<width*0.280842&&mouseY>height*0.809428&&mouseY<height*0.937813){//Within the sign
+    fill(0,255,0);
+  }
+  else{
+    fill(0,0,255);
+  }
+  text("Play!",width*0.12,height*0.89);
+}
+
+void drawMainBackground(){
+  image(mainBackground,0,0,width,height);
+  fill(255,0,0);
+  text(score,0,40);
+}
+
+void drawCrosshairBar(){//Draw the crosshair no-shoot zone
+  fill(150);
+  rect(0,height*13/20,width,height*0.2/20);
+}
+
+void drawTargets(){
   for(PVector m:missedShots){
-    stroke(color(255,0,0));
-    strokeWeight(1);
     noFill();
+    stroke(color(255,0,0));
     circle(m.x,m.y,20);
     line(m.x-10,m.y,m.x+10,m.y);
     line(m.x,m.y-10,m.x,m.y+10);
+    stroke(0);
+  }
+}
+
+void drawCrosshair(){
+  if(mouseY>height*13/20){//If on the top half of the screen
+    noFill();
+    stroke(color(255,0,0));
+    strokeWeight(3);
+    line(mouseX-10,mouseY-10,mouseX+10,mouseY+10);
+    line(mouseX+10,mouseY-10,mouseX-10,mouseY+10);
     stroke(0);
     strokeWeight(1);
   }
 }
 
-void win(){
-  missedShots=new ArrayList<PVector>();
-  score=0;
+void drawGameOverBackground(){
+  image(gameOverBackground,0,0,width,height);
 }
+
+void win(){
+  missedShots=new ArrayList<PVector>();//Clear out missed shots
+  score=0;//Reset Score
+  screen=2;
+}
+
+
 
 class Skeet{
   PVector position=new PVector();
@@ -94,7 +159,8 @@ class Skeet{
   }
   
   void check(){
-    if(position.x<-10||position.x>width+10||position.y<-10||((position.y>height*2/3)&&velocity.y>0)){//Check for offscreen or off horizon
+    if(position.x<-10||position.x>width+10||position.y<-10||((position.y>height*13/20)&&velocity.y>0)){//Check for offscreen or off horizon
+      score=0;
       reset();
     }
   }
@@ -124,6 +190,8 @@ class Skeet{
     return h;
   }
 }
+
+
 
 class Particle{
   PVector position=new PVector();
@@ -157,12 +225,14 @@ class Particle{
   }
 }
 
+
+
 class ParticleSystem{
   ArrayList<Particle> system=new ArrayList<Particle>();
   PVector position=new PVector();
   PVector dimensions=new PVector();
 
-  ParticleSystem(){
+  ParticleSystem(){//Blank Constructor for Initialization
   
   }
 
