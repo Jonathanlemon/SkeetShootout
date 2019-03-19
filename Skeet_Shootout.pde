@@ -2,13 +2,14 @@ int screen=0;//Keep track of current screen value
 int score=0;//Keep track of score
 float crossbarY;//A value to store the crossbar y
 boolean zoomed=false;//Boolean to store the current zoom state
+boolean edged=false;//Boolean to store if the camera reached the edge for mouseMove
 ArrayList<PVector> missedShots;//Holds all the missed shot locations
 ParticleSystem ps;//Explosion effect
 Skeet s;//Skeet object
 PImage menuBackground;//Image backgrounds
 PImage mainBackground;
 PImage gameOverBackground;
-PVector realMouse;//For mouse location relative to origin
+PVector mouse;//For mouse location relative to origin
 PVector img;//Location of image when zoomed in
 PVector origin;//Location of the zoomed in origin
 
@@ -20,8 +21,8 @@ void setup(){
   imageMode(CENTER);
 
   missedShots=new ArrayList<PVector>();//Initialize all the objects
-  realMouse=new PVector();
-  img=new PVector();
+  mouse=new PVector();
+  img=new PVector(width/2, height/2);
   origin=new PVector();
   ps=new ParticleSystem();
   s=new Skeet();
@@ -41,7 +42,7 @@ void draw(){
     drawMainBackground();
     fill(255,200,0);
     text("Score: "+score,-width/2,-height/2+50);//Draw Score
-    calculateMouseLoc();//Calculate the realMouse object
+    calculateMouseLoc();//Calculate the mouse object
     if(zoomed){
       scale(2);//Scale everything by 2
       translate(origin.x,origin.y);//Translate the origin to 2x the opposite of the mouse (So the locations make them appear correctly on the screen)
@@ -65,9 +66,9 @@ void mousePressed(){
   }
   
   else if(screen==1&&mouseButton==LEFT){//Shoot
-    if(realMouse.y<crossbarY){//Above crossbar
-      if(realMouse.x>s.position.x-(s.getWidth()/2)&&realMouse.x<s.position.x+(s.getWidth()/2)&&realMouse.y>s.position.y-(s.getHeight()/2)&&realMouse.y<s.position.y+(s.getHeight()/2)){//If you click within the skeet
-        ps=new ParticleSystem(new PVector(realMouse.x, realMouse.y), new PVector(s.getWidth(),s.getHeight()));//Add a particle effect
+    if(mouse.y<crossbarY){//Above crossbar
+      if(mouse.x>s.position.x-(s.getWidth()/2)&&mouse.x<s.position.x+(s.getWidth()/2)&&mouse.y>s.position.y-(s.getHeight()/2)&&mouse.y<s.position.y+(s.getHeight()/2)){//If you click within the skeet
+        ps=new ParticleSystem(new PVector(mouse.x, mouse.y), new PVector(s.getWidth(),s.getHeight()));//Add a particle effect
         score++;//Increase score
         s.reset();
         if(score==10){//Check for win condition
@@ -76,14 +77,14 @@ void mousePressed(){
       }
       else{
         score=0;
-        missedShots.add(new PVector(realMouse.x, realMouse.y));//Add a missed shot
+        missedShots.add(new PVector(mouse.x, mouse.y));//Add a missed shot
       }
     }
  }
   
   else if(screen==1&&mouseButton==RIGHT){//Right clicked
     if(!zoomed){
-      zoom(realMouse.x,realMouse.y);//Only call zoom if you aren't zoomed
+      zoom(mouse.x,mouse.y);//Only call zoom if you aren't zoomed
     }
     zoomed=!zoomed;//Switch the zoom state
   }
@@ -93,18 +94,45 @@ void mousePressed(){
   }
 }
 
+void mouseMoved(){
+  if(zoomed){
+    img.set(origin.x*2,origin.y*2);
+    if(img.x>width/2){//Make sure the image stays within bounds
+      origin=width/2;//Fix so origin changes not image
+      edged=true;
+    }
+    if(img.y>height/2){
+      img.y=height/2;
+      edged=true;
+    }
+    if(img.x<-width/2){
+      img.x=-width/2;
+      edged=true;
+    }
+    if(img.y<-height/2){
+      img.y=-height/2;
+      edged=true;
+    }
+    if(!edged){
+      origin.add(pmouseX-mouseX,pmouseY-mouseY);
+      img.set(origin.x*2,origin.y*2);
+    }
+    edged=false;
+  }
+}
+
 void calculateMouseLoc(){
   if(screen==1){
-    realMouse.set(mouseX-width/2, mouseY-height/2);//Mouse location relative to center of screen
+    mouse.set(mouseX-width/2, mouseY-height/2);//Mouse location relative to center of screen
     if(zoomed){
-      realMouse.set((realMouse.x-origin.x*2)/2, (realMouse.y-origin.y*2)/2);//Mouse location relative to the zoom origin
+      mouse.set((mouse.x-origin.x*2)/2, (mouse.y-origin.y*2)/2);//Mouse location relative to the zoom origin
     }
   }
 }
 
 void zoom(float x, float y){
   origin.set(-x, -y);//Negative because we want it to start drawing the shapes farther away from the mouse
-  img.set(-realMouse.x*2, -realMouse.y*2);//Calculate and change the background image position based on where you zoomed
+  img.set(origin.x*2,origin.y*2);//Calculate and change the background image position based on where you zoomed
   if(img.x>width/2){//Make sure the image stays within bounds
     img.x=width/2;
   }
@@ -161,12 +189,12 @@ void drawTargets(){
 }
 
 void drawCrosshair(){
-  if(realMouse.y>crossbarY){//If below the crosshair bar
+  if(mouse.y>crossbarY){//If below the crosshair bar
     noFill();
     stroke(color(255,0,0));
     strokeWeight(3);
-    line(realMouse.x-10,realMouse.y-10,realMouse.x+10,realMouse.y+10);
-    line(realMouse.x+10,realMouse.y-10,realMouse.x-10,realMouse.y+10);
+    line(mouse.x-10,mouse.y-10,mouse.x+10,mouse.y+10);
+    line(mouse.x+10,mouse.y-10,mouse.x-10,mouse.y+10);
     stroke(0);
     strokeWeight(1);
   }
@@ -222,7 +250,6 @@ class Skeet{
   }
   
   void reset(){
-    translate(-origin.x,-origin.y);//Reset to middle so the spawning works correctly
     position.set(random(-width/2,width/2), height/2+10);//Generate randomly at bottom
     if(position.x<-width/4){//If on left side
       velocity.set(random(0,width/200),-1*(height/100));//Random x velocity
@@ -233,7 +260,6 @@ class Skeet{
     else{//On right side
       velocity.set(random(-1*width/200,0),-1*(height/100));//Random x velocity
     }
-    translate(origin.x,origin.y);//re-translate
     acceleration.set(0, (float)height/15000);
     size=height/20;
     w=size*2;
