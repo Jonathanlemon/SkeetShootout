@@ -2,7 +2,7 @@ int screen=0;//Keep track of current screen value
 int score=0;//Keep track of score
 float crossbarY;//A value to store the crossbar y
 boolean zoomed=false;//Boolean to store the current zoom state
-boolean edged=false;//Boolean to store if the camera reached the edge for mouseMove
+boolean justSwitched=false;
 ArrayList<PVector> missedShots;//Holds all the missed shot locations
 ParticleSystem ps;//Explosion effect
 Skeet s;//Skeet object
@@ -24,13 +24,13 @@ void setup(){
   mouse=new PVector();
   img=new PVector(width/2, height/2);
   origin=new PVector();
-  ps=new ParticleSystem();
+  ps=null;
   s=new Skeet();
   crossbarY=height*3/20;
   
   menuBackground=loadImage("menuBackground.png");//Load in the background images
   mainBackground=loadImage("mainBackground.png");
-  //gameOverBackground=loadImage("gameOverBackground.png");
+  gameOverBackground=loadImage("gameOverBackground.png");
 }
 
 void draw(){
@@ -51,10 +51,28 @@ void draw(){
     drawCrossbar();//Draw the crossbar
     drawTargets();//Draw the targets
     drawCrosshair();//Draw the crosshair if you can are in the shootable area
-    ps.run();//Run the Particle Systems
+    if(ps!=null){
+      ps.run();//Run the Particle System, as long as it has a value
+    }
   }
   else if(screen==2){//Game End Screen
-    drawGameOverBackground();
+    if(justSwitched){
+      drawGameOverBackground();
+      justSwitched=false;
+    }
+    ps.run();
+    if(ps.system.size()==0){
+      drawGameOverBackground();
+      PVector fireworkLoc=new PVector(random(0,width),random(0, height/3));
+      ps=new ParticleSystem(fireworkLoc);
+    }
+    textSize(55);
+    fill(0,0,255);
+    text("You Win!",width/2-20,height/2);
+    if(mouseX>width*0.026078&&mouseX<width*0.280842&&mouseY>height*0.809428&&mouseY<height*0.937813){//Within the sign
+      fill(0,255,0);
+    }
+    text("Play!",width*0.12,height*0.89);
   }
 }
 
@@ -68,10 +86,10 @@ void mousePressed(){
   else if(screen==1&&mouseButton==LEFT){//Shoot
     if(mouse.y<crossbarY){//Above crossbar
       if(mouse.x>s.position.x-(s.getWidth()/2)&&mouse.x<s.position.x+(s.getWidth()/2)&&mouse.y>s.position.y-(s.getHeight()/2)&&mouse.y<s.position.y+(s.getHeight()/2)){//If you click within the skeet
-        ps=new ParticleSystem(new PVector(mouse.x, mouse.y), new PVector(s.getWidth(),s.getHeight()));//Add a particle effect
+        ps=new ParticleSystem(new PVector(mouse.x, mouse.y), new PVector(s.getWidth(), s.getHeight()), color(209,113,4));//Add a particle effect
         score++;//Increase score
         s.reset();
-        if(score==10){//Check for win condition
+        if(score==5){//Check for win condition
           win();
         }
       }
@@ -90,34 +108,29 @@ void mousePressed(){
   }
   
   else{//Game Over Screen
-  
+    if(mouseX>width*0.026078&&mouseX<width*0.280842&&mouseY>height*0.809428&&mouseY<height*0.937813){//Within the sign
+      ps=null;
+      screen=0;//Reset the game
+    }
   }
 }
 
 void mouseMoved(){
   if(zoomed){
-    img.set(origin.x*2,origin.y*2);
-    if(img.x>width/2){//Make sure the image stays within bounds
-      origin=width/2;//Fix so origin changes not image
-      edged=true;
+    origin.add(pmouseX-mouseX,pmouseY-mouseY);
+    if(origin.x>width/4){//Make sure the game stays in bounds. Divide by 4 because the coordinates are scaled up by 2 when drawn
+      origin.x=width/4;
     }
-    if(img.y>height/2){
-      img.y=height/2;
-      edged=true;
+    if(origin.y>height/4){
+      origin.y=height/4;
     }
-    if(img.x<-width/2){
-      img.x=-width/2;
-      edged=true;
+    if(origin.x<-width/4){
+      origin.x=-width/4;
     }
-    if(img.y<-height/2){
-      img.y=-height/2;
-      edged=true;
+    if(origin.y<-height/4){
+      origin.y=-height/4;
     }
-    if(!edged){
-      origin.add(pmouseX-mouseX,pmouseY-mouseY);
-      img.set(origin.x*2,origin.y*2);
-    }
-    edged=false;
+      img.set(origin.x*2,origin.y*2);//Set by 2 since img set isn't scaled
   }
 }
 
@@ -169,7 +182,7 @@ void drawMainBackground(){
 }
 
 void drawGameOverBackground(){
-  //image(gameOverBackground,width/2,height/2,width,height);
+  image(gameOverBackground,width/2,height/2,width,height);
 }
 
 void drawCrossbar(){//Draw the crosshair no-shoot zone
@@ -205,6 +218,10 @@ void win(){
   score=0;//Reset Score
   screen=2;
   zoomed=false;
+  PVector fireworkLoc=new PVector(random(0,width),random(0, height/3));
+  ps=new ParticleSystem(fireworkLoc);//Add a particle effect
+  translate(-width/2,-height/2);
+  justSwitched=true;
 }
 
 class Skeet{
@@ -252,13 +269,13 @@ class Skeet{
   void reset(){
     position.set(random(-width/2,width/2), height/2+10);//Generate randomly at bottom
     if(position.x<-width/4){//If on left side
-      velocity.set(random(0,width/200),-1*(height/100));//Random x velocity
+      velocity.set(random(0,width/250),-1*(height/120));//Right x velocity
     }
     else if(position.x<width/4){//If in middle
-      velocity.set(random(-1*width/200,width/200),-1*(height/100));//Random x velocity
+      velocity.set(random(-1*width/250,width/200),-1*(height/120));//Random x velocity
     }
     else{//On right side
-      velocity.set(random(-1*width/200,0),-1*(height/100));//Random x velocity
+      velocity.set(random(-1*width/250,0),-1*(height/120));//Left x velocity
     }
     acceleration.set(0, (float)height/15000);
     size=height/20;
@@ -281,13 +298,26 @@ class Particle{
   PVector position=new PVector();
   PVector velocity=new PVector();
   PVector acceleration=new PVector();
-  int life;
+  PVector pposition=new PVector();//Previous position
+  float life=255;
+  float initialLife=255;
+  color c;
+  boolean skeet=false;
+  boolean trace=false;//use the line
   
-  Particle(float x, float y){
+  Particle(float x, float y, color col, boolean skeet){//Clay explosion
     position.set(x,y);
-    velocity.set(random(-1,1),random(-1,1));
+    if(skeet){
+      velocity.set(random(-1,1),random(-1,1));
+    }
+    else{
+      velocity.set(random(-5,5),random(-5,5));
+      life=00;
+      initialLife=1000;
+      trace=true;
+    }
     acceleration=s.acceleration.copy();
-    life=255;
+    c=col;
   }
   
   void run(){
@@ -296,15 +326,21 @@ class Particle{
   }
   
   void update(){
-    life=life-5;
+    life-=5;
     velocity.add(acceleration);
+    pposition=position.copy();
     position.add(velocity);
   }
   
   void display(){
     noStroke();
-    fill(color(209,113,4),life);
+    fill(c,(life/initialLife)*255);
     ellipse(position.x,position.y,5,5);
+    if(trace){
+      strokeWeight(5);
+      stroke(c);
+      line(pposition.x,pposition.y,position.x,position.y);
+    }
     stroke(0);
   }
 }
@@ -315,16 +351,21 @@ class ParticleSystem{
   ArrayList<Particle> system=new ArrayList<Particle>();
   PVector position=new PVector();
   PVector dimensions=new PVector();
+  color c;
 
-  ParticleSystem(){//Blank Constructor for Initialization
-  
-  }
-
-  ParticleSystem(PVector p, PVector d){
+  ParticleSystem(PVector p, PVector d, color col){//Clay constructor
     position=p.copy();
+    c=col;
     dimensions=d.copy();
     for(int i=0;i<(0.05*dimensions.x*dimensions.y);i++){
-      system.add(new Particle(random(position.x-(dimensions.x/3),position.x+(dimensions.x/3)),random(position.y-(dimensions.y/3),position.y+(dimensions.y/3))));
+      system.add(new Particle(random(position.x-(dimensions.x/3),position.x+(dimensions.x/3)),random(position.y-(dimensions.y/3),position.y+(dimensions.y/3)), c, true));
+    }
+  }
+  
+  ParticleSystem(PVector p){//Firework constructor
+    position=p.copy();
+    for(int i=0;i<100;i++){
+      system.add(new Particle(p.x, p.y, color(random(0,255),random(0,255),random(0,255)),false));
     }
   }
   
