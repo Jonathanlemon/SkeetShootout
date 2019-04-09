@@ -14,7 +14,7 @@ PVector img;//Location of image when zoomed in
 PVector origin;//Location of the zoomed in origin
 
 void setup(){
-  fullScreen(P2D);//Make it full screen and run using a 2d renderer
+  size(1900,1060,P2D);//Make it full screen and run using a 2d renderer
   frameRate(60);//Set frame rate
   ellipseMode(CENTER);
   rectMode(CENTER);
@@ -68,7 +68,6 @@ void draw(){
     }
     textSize(55);
     fill(0,0,255);
-    text("You Win!",width/2-20,height/2);
     if(mouseX>width*0.026078&&mouseX<width*0.280842&&mouseY>height*0.809428&&mouseY<height*0.937813){//Within the sign
       fill(0,255,0);
     }
@@ -182,7 +181,7 @@ void drawMainBackground(){
 }
 
 void drawGameOverBackground(){
-  image(gameOverBackground,width/2,height/2,width,height);
+  image(gameOverBackground,width/2,height/2,width,height+1);
 }
 
 void drawCrossbar(){//Draw the crosshair no-shoot zone
@@ -220,7 +219,6 @@ void win(){
   zoomed=false;
   PVector fireworkLoc=new PVector(random(0,width),random(0, height/3));
   ps=new ParticleSystem(fireworkLoc);//Add a particle effect
-  translate(-width/2,-height/2);
   justSwitched=true;
 }
 
@@ -308,11 +306,11 @@ class Particle{
   Particle(float x, float y, color col, boolean skeet){//Clay explosion
     position.set(x,y);
     if(skeet){
-      velocity.set(random(-1,1),random(-1,1));
+      velocity.set(random(-1,1),random(-1,1));//If its a clay, then have a less random velocity
     }
     else{
       velocity.set(random(-5,5),random(-5,5));
-      life=00;
+      life=1000;
       initialLife=1000;
       trace=true;
     }
@@ -334,11 +332,12 @@ class Particle{
   
   void display(){
     noStroke();
-    fill(c,(life/initialLife)*255);
+    int alpha=int((life/initialLife)*255);
+    fill(c,alpha);
     ellipse(position.x,position.y,5,5);
     if(trace){
       strokeWeight(5);
-      stroke(c);
+      stroke(c,alpha);
       line(pposition.x,pposition.y,position.x,position.y);
     }
     stroke(0);
