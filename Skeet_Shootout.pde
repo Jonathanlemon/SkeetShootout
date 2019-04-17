@@ -34,10 +34,8 @@ void setup(){
 }
 
 void draw(){
-  if(screen==0){//Menu Screen
-    drawMenuBackground();
-  }
-  else if(screen==1){//Game Screen
+  
+  if(screen==1){//Game Screen
     translate(width/2,height/2);//Set origin to middle (resets after every draw)
     drawMainBackground();
     fill(255,200,0);
@@ -66,13 +64,20 @@ void draw(){
       PVector fireworkLoc=new PVector(random(0,width),random(0, height/3));
       ps=new ParticleSystem(fireworkLoc);
     }
-    textSize(55);
+    drawText();
+  }
+  else if(screen==0){//Menu Screen
+    drawMenuBackground();
+    drawText();
+  }
+}
+void drawText(){
+  textSize(55);
     fill(0,0,255);
     if(mouseX>width*0.026078&&mouseX<width*0.280842&&mouseY>height*0.809428&&mouseY<height*0.937813){//Within the sign
       fill(0,255,0);
     }
     text("Play!",width*0.12,height*0.89);
-  }
 }
 
 void mousePressed(){
@@ -83,21 +88,8 @@ void mousePressed(){
   }
   
   else if(screen==1&&mouseButton==LEFT){//Shoot
-    if(mouse.y<crossbarY){//Above crossbar
-      if(mouse.x>s.position.x-(s.getWidth()/2)&&mouse.x<s.position.x+(s.getWidth()/2)&&mouse.y>s.position.y-(s.getHeight()/2)&&mouse.y<s.position.y+(s.getHeight()/2)){//If you click within the skeet
-        ps=new ParticleSystem(new PVector(mouse.x, mouse.y), new PVector(s.getWidth(), s.getHeight()), color(209,113,4));//Add a particle effect
-        score++;//Increase score
-        s.reset();
-        if(score==5){//Check for win condition
-          win();
-        }
-      }
-      else{
-        score=0;
-        missedShots.add(new PVector(mouse.x, mouse.y));//Add a missed shot
-      }
-    }
- }
+    shoot();
+  }
   
   else if(screen==1&&mouseButton==RIGHT){//Right clicked
     if(!zoomed){
@@ -112,6 +104,37 @@ void mousePressed(){
       screen=0;//Reset the game
     }
   }
+}
+
+void shoot(){
+  if(mouse.y<crossbarY){//Above crossbar
+      if(mouse.x>s.position.x-(s.getWidth()/2)&&mouse.x<s.position.x+(s.getWidth()/2)&&mouse.y>s.position.y-(s.getHeight()/2)&&mouse.y<s.position.y+(s.getHeight()/2)){//If you click within the skeet
+        ps=new ParticleSystem(new PVector(mouse.x, mouse.y), new PVector(s.getWidth(), s.getHeight()), color(209,113,4));//Add a particle effect
+        score++;//Increase score
+        s.reset();
+        if(score==5){//Check for win condition
+          win();
+        }
+      }
+      else{
+        miss();
+      }
+    }
+}
+
+void win(){
+  missedShots=new ArrayList<PVector>();//Clear out missed shots
+  score=0;//Reset Score
+  screen=2;
+  zoomed=false;
+  PVector fireworkLoc=new PVector(random(0,width),random(0, height/3));
+  ps=new ParticleSystem(fireworkLoc);//Add a particle effect
+  justSwitched=true;
+}
+
+void miss(){
+  score=0;
+  missedShots.add(new PVector(mouse.x, mouse.y));//Add a missed shot
 }
 
 void mouseMoved(){
@@ -161,14 +184,6 @@ void zoom(float x, float y){
 
 void drawMenuBackground(){
   image(menuBackground,width/2,height/2,width,height);
-  textSize(55);
-  if(mouseX>width*0.026078&&mouseX<width*0.280842&&mouseY>height*0.809428&&mouseY<height*0.937813){//Within the sign
-    fill(0,255,0);
-  }
-  else{
-    fill(0,0,255);
-  }
-  text("Play!",width*0.12,height*0.89);
 }
 
 void drawMainBackground(){
@@ -210,16 +225,6 @@ void drawCrosshair(){
     stroke(0);
     strokeWeight(1);
   }
-}
-
-void win(){
-  missedShots=new ArrayList<PVector>();//Clear out missed shots
-  score=0;//Reset Score
-  screen=2;
-  zoomed=false;
-  PVector fireworkLoc=new PVector(random(0,width),random(0, height/3));
-  ps=new ParticleSystem(fireworkLoc);//Add a particle effect
-  justSwitched=true;
 }
 
 class Skeet{
