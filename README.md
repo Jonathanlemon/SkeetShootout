@@ -1,2 +1,2 @@
-# SkeetShooter-Create-Project
+# SkeetShootout
 A game in Processing
