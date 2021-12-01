@@ -1,2 +1,2 @@
 # SkeetShootout
-A game in Processing
+A fps (first person shooter) game in Processing
